@@ -7,7 +7,8 @@ Only the Rhino 8 macOS Apple Silicon geometry smoke and local Yak installation h
 - Both Rhino targets build; the standalone profile suite passes 178 assertions.
 - In Rhino 8.35 on macOS Apple Silicon, a disposable headless document passes geometry smoke checks for one-loop custom circles and polylines, two nested circular loops with caps on and off, a curved hollow ellipse with varying wall and multiple taper stations, and the existing built-in profiles.
 - Cross sections measured at 25%, 50%, and 75% of a straight rail match requested grow/shrink scales. Noncoplanar and non-nested inner loops are rejected.
-- The 0.10 alpha Yak archives pass ZIP integrity checks. The command dialog and package installation have not yet been tested for this alpha; the installed-package result below applies to 0.9.
+- The 0.10 alpha Yak archives pass ZIP integrity checks. Rhino 8 accepted the local alpha package, but command loading and interaction after restart remain unverified; the installed-package geometry result below applies to 0.9.
+- Review feedback found that the expanded dialog can exceed the screen height, hiding Create members. The settings now scroll and the action buttons remain visible. Rhino 8 has the local 0.10 alpha package installed; restart Rhino to load it. Interactive layout, preview, creation, and undo still need a user-facing check.
 
 ## 0.9 verification (2026-10-12)
 

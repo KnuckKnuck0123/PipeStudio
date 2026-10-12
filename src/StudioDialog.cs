@@ -52,7 +52,8 @@ namespace PipeStudio
             preview = new StudioPreview(doc);
             Title = "Pipe Studio";
             Padding = new Padding(18);
-            Resizable = false;
+            Resizable = true;
+            ClientSize = new Size(470, 600);
             var select = new Button { Text = "Select path curves..." };
             var cancel = new Button { Text = "Cancel" };
             DefaultButton = create;
@@ -79,8 +80,12 @@ namespace PipeStudio
             layout.AddRow(cap, shaded);
             layout.AddRow(hint);
             layout.AddRow(status);
-            layout.AddRow(create, cancel);
-            Content = layout;
+            // Keep the action buttons visible when the expanded form is taller than
+            // Rhino's available screen space (especially on smaller Mac displays).
+            var content = new DynamicLayout { Spacing = new Size(10, 9) };
+            content.Add(new Scrollable { Content = layout }, true, true);
+            content.AddRow(create, cancel);
+            Content = content;
 
             select.Click += (s, e) => this.PushPickButton((sender, args) => SelectRails());
             selectProfile.Click += (s, e) => this.PushPickButton((sender, args) => SelectCustomProfile());
