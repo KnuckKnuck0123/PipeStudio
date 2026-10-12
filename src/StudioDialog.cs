@@ -12,6 +12,8 @@ namespace PipeStudio
 {
     internal sealed class StudioDialog : Dialog
     {
+        private const int MaxBatchCurves = 2000;
+        private const int PreviewCurves = 200;
         private readonly RhinoDoc document;
         private readonly StudioPreview preview;
         private readonly List<Guid> rails = new List<Guid>();
@@ -190,15 +192,20 @@ namespace PipeStudio
             if (closing) return;
             using (var getter = new GetObject())
             {
-                getter.SetCommandPrompt("Select Pipe Studio path curves (maximum 200)");
+                getter.SetCommandPrompt("Select Pipe Studio path curves (maximum " + MaxBatchCurves + ")");
                 getter.GeometryFilter = ObjectType.Curve;
                 getter.SubObjectSelect = false;
                 getter.EnablePreSelect(true, true);
                 getter.GetMultiple(1, 0);
                 if (getter.CommandResult() != Rhino.Commands.Result.Success) return;
-                if (getter.ObjectCount > 200)
+                if (getter.ObjectCount > MaxBatchCurves)
                 {
-                    status.Text = "Select no more than 200 curves per batch.";
+                    rails.Clear();
+                    railLabel.Text = "No path curves selected";
+                    timer.Stop();
+                    preview.Clear();
+                    create.Enabled = false;
+                    status.Text = "Select no more than " + MaxBatchCurves + " curves per batch.";
                     return;
                 }
                 rails.Clear();
@@ -213,10 +220,11 @@ namespace PipeStudio
             if (closing) return;
             using (var getter = new GetObject())
             {
-                getter.SetCommandPrompt("Select one closed profile curve, or outer then inner closed curves");
+                getter.SetCommandPrompt("Select outer closed profile curve, optionally inner; press Enter after one");
                 getter.GeometryFilter = ObjectType.Curve;
                 getter.SubObjectSelect = false;
                 getter.EnablePreSelect(false, true);
+                getter.AlreadySelectedObjectSelect = true;
                 getter.GetMultiple(1, 2);
                 if (getter.CommandResult() != Rhino.Commands.Result.Success) return;
                 customOuterId = getter.Object(0).ObjectId;
@@ -248,13 +256,19 @@ namespace PipeStudio
             if (rails.Count == 0) { status.Text = "Select curves to preview your members."; return; }
             try
             {
-                var batch = GeometryEngine.Build(document, rails, settings);
+                int previewCount = Math.Min(rails.Count, PreviewCurves);
+                var batch = GeometryEngine.Build(document,
+                    rails.Count > PreviewCurves ? rails.GetRange(0, previewCount) : rails, settings);
                 preview.Batch = batch;
                 preview.Enabled = batch.Members.Count > 0;
-                create.Enabled = batch.Members.Count > 0;
-                create.Text = batch.Errors.Count == 0 ? "Create members" : "Create valid members (" + batch.Members.Count + ")";
-                status.Text = batch.Members.Count + " member(s) ready."
-                    + (batch.Errors.Count == 0 ? "" : " " + batch.Errors.Count + " skipped. " + batch.Errors[0]);
+                create.Enabled = batch.Members.Count > 0 || rails.Count > PreviewCurves;
+                create.Text = rails.Count > PreviewCurves ? "Create up to " + rails.Count + " members"
+                    : batch.Errors.Count == 0 ? "Create members" : "Create valid members (" + batch.Members.Count + ")";
+                status.Text = rails.Count > PreviewCurves
+                    ? "Previewing first " + previewCount + " of " + rails.Count + " curves. Create will process all."
+                        + (batch.Errors.Count == 0 ? "" : " " + batch.Errors.Count + " preview error(s): " + batch.Errors[0])
+                    : batch.Members.Count + " member(s) ready."
+                        + (batch.Errors.Count == 0 ? "" : " " + batch.Errors.Count + " skipped. " + batch.Errors[0]);
                 document.Views.Redraw();
             }
             catch (Exception ex) { preview.Clear(); status.Text = "Preview failed: " + ex.Message; }
@@ -263,10 +277,16 @@ namespace PipeStudio
         private void CreateMembers()
         {
             RebuildPreview(); // Re-read the rails so creation never uses stale document geometry.
-            var batch = preview.Batch;
-            if (batch == null || batch.Members.Count == 0) return;
             var settings = Settings(out string inputError);
             if (inputError != null) { status.Text = inputError; return; }
+            bool ownsBatch = rails.Count > PreviewCurves;
+            var batch = ownsBatch ? GeometryEngine.Build(document, rails, settings) : preview.Batch;
+            if (batch == null || batch.Members.Count == 0)
+            {
+                status.Text = batch != null && batch.Errors.Count > 0 ? batch.Errors[0] : "No valid members were produced.";
+                if (ownsBatch) batch?.Dispose();
+                return;
+            }
             uint undo = document.BeginUndoRecord("Pipe Studio");
             var ids = new List<Guid>();
             try
@@ -306,6 +326,7 @@ namespace PipeStudio
             finally
             {
                 if (undo != 0) document.EndUndoRecord(undo);
+                if (ownsBatch) batch.Dispose();
                 document.Views.Redraw();
             }
             if (Created) Close();

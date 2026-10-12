@@ -29,7 +29,7 @@ In Rhino, run `RunPythonScript` and select `scripts/TestPipeStudio.py`. This loa
 
 1. Load the appropriate `PipeStudio.rhp` through Rhino's plugin manager, or drag the file into Rhino. For Rhino 7 use the `net48` build; for Rhino 8's default .NET runtime use `net7.0`. Rhino 8 Windows running the legacy .NET Framework runtime uses `net48`.
 2. Run `PipeStudio`.
-3. Click **Select path curves…** and select up to 200 curves.
+3. Click **Select path curves…** and select up to 2,000 curves. For batches over 200, the viewport previews the first 200; **Create** processes every selected curve.
 4. Choose a profile and dimensions. Review the preview, rotation, taper, and caps.
    For **Custom curve**, click **Select profile curve(s)…** and pick the outer curve, then optionally an inner curve. For repeated grow/shrink taper, enter intermediate `position:scale` pairs in ascending order.
 5. Click **Create members**. If a rail fails, the panel identifies skipped rails and offers creation of the valid members. Cancel clears the preview without adding objects.
@@ -54,8 +54,8 @@ Outputs:
 ```text
 bin/Release/net48/PipeStudio.rhp
 bin/Release/net7.0/PipeStudio.rhp
-build/packages/PipeStudio-0.10.0-alpha.1-rh7_0-any.yak
-build/packages/PipeStudio-0.10.0-alpha.1-rh8_0-any.yak
+build/packages/PipeStudio-0.10.0-alpha.3-rh7_0-any.yak
+build/packages/PipeStudio-0.10.0-alpha.3-rh8_0-any.yak
 ```
 
 The Rhino 7 distribution contains the `net48` plugin at the package root. The Rhino 8 distribution contains `net48/` and `net7.0/` folders so Rhino selects the matching runtime. Packages contain PipeStudio, its manifest, icon, readme, and MIT license; Rhino supplies RhinoCommon, Rhino.UI, and Eto.
