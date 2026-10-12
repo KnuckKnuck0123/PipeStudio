@@ -138,6 +138,14 @@ try:
             check(doc.Objects.FindId(outer_id) is not None, 'custom source curve preserved')
         finally:
             batch.Dispose()
+    settings.CapEnds = False
+    rail_id, batch = generate(doc, straight, settings)
+    try:
+        check(batch.Errors.Count == 0, 'uncapped hollow profile: ' + '; '.join([str(x) for x in batch.Errors]))
+        check(batch.Members.Count == 1 and batch.Members[0].Breps.Count == 2, 'uncapped hollow walls')
+        check(all(b.IsValid and not b.IsSolid for b in batch.Members[0].Breps), 'uncapped hollow open walls')
+    finally:
+        batch.Dispose()
     # Curved outer and inner loops preserve a deliberately varying wall on an arc rail.
     shaped_outer = rg.Ellipse(rg.Plane.WorldXY, 3, 2).ToNurbsCurve()
     shaped_inner = rg.Ellipse(rg.Plane.WorldXY, 2, .75).ToNurbsCurve()
