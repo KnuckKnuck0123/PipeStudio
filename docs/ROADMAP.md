@@ -18,6 +18,9 @@ Deliver the toolbar definition with the Yak package and test that it appears, ru
 
 ## Larger geometry ideas
 
+- **Custom drawn profile:** select one closed planar Rhino curve as the section outline. Preserve arcs and NURBS segments rather than converting everything to a polygon. Let the user choose a profile origin and rotation so placement along the rail is predictable.
+- **Hollow custom profile:** select two closed, coplanar curves, one nested inside the other. Sweep both loops to form a section with a void; the drawn inner curve defines the wall, including intentionally uneven thickness. Validate closure, planarity, containment, self-intersection, and end caps before creation. A numeric uniform wall offset from one curve could be a later convenience.
+- **Multiple taper stations:** replace the current start/end scale pair with ordered stations along rail length, each with a positive scale. Support patterns such as big–small–big–small. Begin with straight interpolation between stations and visible handles or a simple station list; consider smooth interpolation after the basic geometry is reliable. For a closed rail, the first and last scales must match at the seam, even if intermediate stations vary.
 - **Hollow round and rectangular tubes:** outer size and wall thickness, with open or capped ends. The current circular section is solid when capped.
 - **Preset libraries:** common steel sections and custom saved profiles, with source and unit system visible. Keep manufacturer/rated properties separate from the modeled outline.
 - **Joint and end treatments:** mitered ends, angle cuts, and basic trim to neighboring members. Start with predictable pairwise cases before automatic network cleanup.
@@ -30,6 +33,14 @@ Deliver the toolbar definition with the Yak package and test that it appears, ru
 2. Add and test the toolbar button and small icon.
 3. Add remembered settings and section alignment.
 4. Design editable members before expanding the profile catalog; this avoids making every new feature a one-shot operation.
+5. Prototype custom single-loop and nested-loop sweeps on a straight rail, then a curved rail. Add multi-station taper to the same section pipeline after those cases pass native Rhino geometry checks.
+
+## Design decisions for custom profiles and taper
+
+- Start with curves selected from the active Rhino document. Decide whether generated members keep a live link to those source curves or a frozen copy of their shape.
+- Use distance along the rail, rather than raw curve parameter, for taper-station positions so a station at 50% lands halfway along the rail's length.
+- Show each station's position and scale in the viewport preview; make add, move, edit, and remove actions undoable in the panel before creating geometry.
+- Check profile loop correspondence and orientation during sweeps so the inner wall does not twist or flip when the rail curves.
 
 ## Rhino UI references
 
