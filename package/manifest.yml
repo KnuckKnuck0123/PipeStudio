@@ -1,0 +1,18 @@
+---
+name: PipeStudio
+version: 0.9.0
+authors:
+- Noah K
+icon: icon-v0.9.png
+description: >
+  Architectural profile sweeps along curves for Rhino 7 and 8. Circular,
+  triangular, square, polygon, lumber, C-stud, I-beam, and angle profiles
+  with viewport preview and adjustable dimensions.
+url: https://github.com/KnuckKnuck0123/PipeStudio
+keywords:
+- pipe
+- profiles
+- sweep
+- architecture
+- framing
+- guid:74d33b47-ef41-4740-aab3-01a3e5f0cbd4
