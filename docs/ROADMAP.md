@@ -23,7 +23,7 @@ Deliver the toolbar definition with the Yak package and test that it appears, ru
 - **Multiple taper stations:** replace the current start/end scale pair with ordered stations along rail length, each with a positive scale. Support patterns such as big–small–big–small. Begin with straight interpolation between stations and visible handles or a simple station list; consider smooth interpolation after the basic geometry is reliable. For a closed rail, the first and last scales must match at the seam, even if intermediate stations vary.
 - **Hollow round and rectangular tubes:** outer size and wall thickness, with open or capped ends. The current circular section is solid when capped.
 - **Preset libraries:** common steel sections and custom saved profiles, with source and unit system visible. Keep manufacturer/rated properties separate from the modeled outline.
-- **Joint and end treatments:** mitered ends, angle cuts, and basic trim to neighboring members. Start with predictable pairwise cases before automatic network cleanup.
+- **Joint and end treatments:** the existing **Cap ends** choice closes individual members. Investigate an explicit **Join touching members** choice and trim-to-neighbor tools for short or oblique joints like the screenshot; joining alone will not close a gap left by a short rail. Start with predictable pairwise cases before automatic network cleanup.
 - **Curved-rail frame control:** a user-picked reference plane or guide curve to reduce unwanted twist on spatial rails.
 - **Batch organization:** optional layer naming, material assignment, and object names while preserving a single undo step.
 
