@@ -1,8 +1,10 @@
 # Pipe Studio
 
+<img src="assets/pipestudio-icon-v0.9.png" alt="Pipe Studio icon" width="160">
+
 Pipe Studio is a new RhinoCommon plugin for creating architectural members along path curves. It targets **Rhino 7 and Rhino 8 on macOS and Windows** with a shared Eto interface and AnyCPU assemblies.
 
-**Status: 0.9 release candidate.** The Rhino 7/8, macOS/Windows host checks in [docs/TESTING.md](docs/TESTING.md) are still being completed. Building the packages does not install or publish them.
+**Status: 0.9 public preview.** The Rhino 7/8, macOS/Windows host checks in [docs/TESTING.md](docs/TESTING.md) are still being completed. The current release is on [GitHub](https://github.com/KnuckKnuck0123/PipeStudio/releases/tag/v0.9.0) and Rhino Package Manager. Building the packages does not install or publish them. Future ideas are in [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Profiles and controls
 
