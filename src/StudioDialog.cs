@@ -25,6 +25,9 @@ namespace PipeStudio
         private readonly NumericStepper rotation = Number(0, -360, 360, 1);
         private readonly NumericStepper startScale = Number(1, 0.01, 100);
         private readonly NumericStepper endScale = Number(1, 0.01, 100);
+        private readonly TextBox taperStations = new TextBox { Width = 250 };
+        private readonly Button selectProfile = new Button { Text = "Select profile curve(s)..." };
+        private readonly Label profileLabel = new Label { Text = "No custom profile selected" };
         private readonly CheckBox cap = new CheckBox { Text = "Cap ends", Checked = true };
         private readonly CheckBox shaded = new CheckBox { Text = "Shaded preview", Checked = true };
         private readonly Label widthLabel = new Label { Text = "Diameter" };
@@ -33,6 +36,8 @@ namespace PipeStudio
         private readonly Label status = new Label { Wrap = WrapMode.Word, Width = 375 };
         private readonly Button create = new Button { Text = "Create members", Enabled = false };
         private readonly UITimer timer = new UITimer { Interval = 0.25 };
+        private Guid customOuterId;
+        private Guid customInnerId;
         private bool updating;
         private bool cleared;
         private bool closing;
@@ -58,6 +63,8 @@ namespace PipeStudio
             layout.AddRow(select);
             layout.AddRow(railLabel);
             layout.AddRow(new Label { Text = "Profile" }, kind);
+            layout.AddRow(selectProfile);
+            layout.AddRow(profileLabel);
             layout.AddRow(new Label { Text = "Lumber size (US)" }, lumber);
             layout.AddRow(widthLabel, width);
             layout.AddRow(new Label { Text = "Height / depth" }, height);
@@ -67,6 +74,7 @@ namespace PipeStudio
             layout.AddRow(new Label { Text = "Rotation (degrees)" }, rotation);
             layout.AddRow(new Label { Text = "Start scale" }, startScale);
             layout.AddRow(new Label { Text = "End scale" }, endScale);
+            layout.AddRow(new Label { Text = "Intermediate taper (position:scale)" }, taperStations);
             layout.AddRow(new Label { Text = "Dimensions: " + doc.ModelUnitSystem + ". Scale 1 = entered size." });
             layout.AddRow(cap, shaded);
             layout.AddRow(hint);
@@ -75,6 +83,7 @@ namespace PipeStudio
             Content = layout;
 
             select.Click += (s, e) => this.PushPickButton((sender, args) => SelectRails());
+            selectProfile.Click += (s, e) => this.PushPickButton((sender, args) => SelectCustomProfile());
             create.Click += (s, e) => CreateMembers();
             cancel.Click += (s, e) => Close();
             kind.SelectedIndexChanged += (s, e) => { UpdateFields(); QueuePreview(); };
@@ -82,6 +91,7 @@ namespace PipeStudio
             foreach (var control in new[] { width, height, thickness, lip, sides, rotation, startScale, endScale })
                 control.ValueChanged += (s, e) => QueuePreview();
             cap.CheckedChanged += (s, e) => QueuePreview();
+            taperStations.TextChanged += (s, e) => QueuePreview();
             shaded.CheckedChanged += (s, e) => { preview.Shaded = shaded.Checked == true; document.Views.Redraw(); };
             timer.Elapsed += (s, e) => { timer.Stop(); RebuildPreview(); };
             Closing += (s, e) => { closing = true; ClearPreview(); };
@@ -91,14 +101,39 @@ namespace PipeStudio
         }
 
         private ProfileKind Kind => (ProfileKind)Math.Max(0, kind.SelectedIndex);
-        private ProfileSettings Settings() => new ProfileSettings
+        private ProfileSettings Settings(out string inputError)
         {
-            Kind = Kind, Width = width.Value, Height = height.Value,
-            Thickness = thickness.Value, Lip = lip.Value, Sides = (int)sides.Value,
-            RotationDegrees = rotation.Value, CapEnds = cap.Checked == true,
-            StartScale = startScale.Value, EndScale = endScale.Value,
-            LumberSize = lumber.SelectedValue as string
-        };
+            var stations = ParseStations(taperStations.Text, out inputError);
+            return new ProfileSettings
+            {
+                Kind = Kind, Width = width.Value, Height = height.Value,
+                Thickness = thickness.Value, Lip = lip.Value, Sides = (int)sides.Value,
+                RotationDegrees = rotation.Value, CapEnds = cap.Checked == true,
+                StartScale = startScale.Value, EndScale = endScale.Value,
+                IntermediateStations = stations,
+                CustomOuterId = customOuterId, CustomInnerId = customInnerId,
+                LumberSize = lumber.SelectedValue as string
+            };
+        }
+
+        private static List<TaperStation> ParseStations(string input, out string error)
+        {
+            error = null;
+            var stations = new List<TaperStation>();
+            if (string.IsNullOrWhiteSpace(input)) return stations;
+            foreach (var item in input.Split(','))
+            {
+                var pair = item.Trim().Split(':');
+                if (pair.Length != 2 || !double.TryParse(pair[0], NumberStyles.Float, CultureInfo.InvariantCulture, out double position)
+                    || !double.TryParse(pair[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double scale))
+                {
+                    error = "Enter taper stations as position:scale, separated by commas (example: 0.25:0.5, 0.5:1).";
+                    return stations;
+                }
+                stations.Add(new TaperStation(position, scale));
+            }
+            return stations;
+        }
 
         private void UpdateFields()
         {
@@ -106,16 +141,20 @@ namespace PipeStudio
             bool round = Kind == ProfileKind.Circle || Kind == ProfileKind.Triangle || Kind == ProfileKind.Polygon;
             widthLabel.Text = round ? "Diameter / corner diameter" : "Width";
             height.Enabled = Kind == ProfileKind.Rectangle || steel;
-            width.Enabled = Kind != ProfileKind.Lumber;
+            width.Enabled = Kind != ProfileKind.Lumber && Kind != ProfileKind.Custom;
             thickness.Enabled = steel;
             lip.Enabled = Kind == ProfileKind.CStud;
             sides.Enabled = Kind == ProfileKind.Polygon;
             rotation.Enabled = Kind != ProfileKind.Circle;
             lumber.Enabled = Kind == ProfileKind.Lumber;
+            selectProfile.Enabled = Kind == ProfileKind.Custom;
+            profileLabel.Visible = Kind == ProfileKind.Custom;
             if (Kind == ProfileKind.Lumber) ApplyLumber();
-            hint.Text = steel
+            hint.Text = Kind == ProfileKind.Custom
+                ? "Select one closed planar curve for a solid section, or an outer and inner curve for a hollow section. Created members keep a fixed copy of the shape."
+                : steel
                 ? "Idealized sharp-corner section. Taper scales the entire section, including thickness."
-                : "Profiles are centered on each rail. Taper scales the whole section. Closed rails need matching scales.";
+                : "Profiles are centered on each rail. Taper scales the whole section. Closed rails need matching end scales.";
         }
 
         private void ApplyLumber()
@@ -164,6 +203,24 @@ namespace PipeStudio
             RebuildPreview();
         }
 
+        private void SelectCustomProfile()
+        {
+            if (closing) return;
+            using (var getter = new GetObject())
+            {
+                getter.SetCommandPrompt("Select one closed profile curve, or outer then inner closed curves");
+                getter.GeometryFilter = ObjectType.Curve;
+                getter.SubObjectSelect = false;
+                getter.EnablePreSelect(false, true);
+                getter.GetMultiple(1, 2);
+                if (getter.CommandResult() != Rhino.Commands.Result.Success) return;
+                customOuterId = getter.Object(0).ObjectId;
+                customInnerId = getter.ObjectCount == 2 ? getter.Object(1).ObjectId : Guid.Empty;
+            }
+            profileLabel.Text = customInnerId == Guid.Empty ? "One profile curve selected" : "Outer and inner profile curves selected";
+            RebuildPreview();
+        }
+
         private void RebuildPreview()
         {
             if (closing || cleared) return;
@@ -179,7 +236,8 @@ namespace PipeStudio
                 }
                 ApplyLumber();
             }
-            var settings = Settings();
+            var settings = Settings(out string inputError);
+            if (inputError != null) { status.Text = inputError; return; }
             var error = settings.Validate();
             if (error != null) { status.Text = error; return; }
             if (rails.Count == 0) { status.Text = "Select curves to preview your members."; return; }
@@ -202,7 +260,8 @@ namespace PipeStudio
             RebuildPreview(); // Re-read the rails so creation never uses stale document geometry.
             var batch = preview.Batch;
             if (batch == null || batch.Members.Count == 0) return;
-            var settings = Settings();
+            var settings = Settings(out string inputError);
+            if (inputError != null) { status.Text = inputError; return; }
             uint undo = document.BeginUndoRecord("Pipe Studio");
             var ids = new List<Guid>();
             try
@@ -214,6 +273,12 @@ namespace PipeStudio
                     attributes.SetUserString("PipeStudio.Rail", member.RailId.ToString());
                     attributes.SetUserString("PipeStudio.StartScale", settings.StartScale.ToString(CultureInfo.InvariantCulture));
                     attributes.SetUserString("PipeStudio.EndScale", settings.EndScale.ToString(CultureInfo.InvariantCulture));
+                    attributes.SetUserString("PipeStudio.TaperStations", taperStations.Text ?? "");
+                    if (Kind == ProfileKind.Custom)
+                    {
+                        attributes.SetUserString("PipeStudio.CustomOuter", customOuterId.ToString());
+                        if (customInnerId != Guid.Empty) attributes.SetUserString("PipeStudio.CustomInner", customInnerId.ToString());
+                    }
                     foreach (var brep in member.Breps)
                     {
                         Guid id = document.Objects.AddBrep(brep, attributes);

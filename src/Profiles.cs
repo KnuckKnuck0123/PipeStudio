@@ -3,7 +3,15 @@ using System.Collections.Generic;
 
 namespace PipeStudio
 {
-    public enum ProfileKind { Circle, Triangle, Square, Rectangle, Polygon, CStud, Lumber, IBeam, Angle }
+    public enum ProfileKind { Circle, Triangle, Square, Rectangle, Polygon, CStud, Lumber, IBeam, Angle, Custom }
+
+    public sealed class TaperStation
+    {
+        public double Position { get; set; }
+        public double Scale { get; set; } = 1.0;
+        public TaperStation() { }
+        public TaperStation(double position, double scale) { Position = position; Scale = scale; }
+    }
 
     /// <summary>Dimensions use document units. Width is the diameter for Circle and the
     /// circumcircle diameter for Triangle/Polygon. Height is web depth for CStud/IBeam.
@@ -20,10 +28,29 @@ namespace PipeStudio
         public double RotationDegrees { get; set; }
         public double StartScale { get; set; } = 1.0;
         public double EndScale { get; set; } = 1.0;
+        public List<TaperStation> IntermediateStations { get; set; } = new List<TaperStation>();
         public bool CapEnds { get; set; } = true;
         public string LumberSize { get; set; } = "2x4";
+        public Guid CustomOuterId { get; set; }
+        public Guid CustomInnerId { get; set; }
 
-        public ProfileSettings Clone() { return (ProfileSettings)MemberwiseClone(); }
+        public ProfileSettings Clone()
+        {
+            var copy = (ProfileSettings)MemberwiseClone();
+            copy.IntermediateStations = new List<TaperStation>();
+            if (IntermediateStations != null)
+                foreach (var station in IntermediateStations)
+                    copy.IntermediateStations.Add(new TaperStation(station.Position, station.Scale));
+            return copy;
+        }
+
+        public List<TaperStation> AllStations()
+        {
+            var stations = new List<TaperStation> { new TaperStation(0, StartScale) };
+            if (IntermediateStations != null) stations.AddRange(IntermediateStations);
+            stations.Add(new TaperStation(1, EndScale));
+            return stations;
+        }
 
         public string Validate()
         {
@@ -35,6 +62,19 @@ namespace PipeStudio
             if (!Finite(RotationDegrees)) return "Rotation must be a finite number.";
             if (!Finite(StartScale) || StartScale <= 0) return "Start scale must be a finite positive number.";
             if (!Finite(EndScale) || EndScale <= 0) return "End scale must be a finite positive number.";
+            if (IntermediateStations == null) return "Taper stations are missing.";
+            if (IntermediateStations.Count > 24) return "Use at most 24 intermediate taper stations.";
+            double previous = 0;
+            foreach (var station in IntermediateStations)
+            {
+                if (station == null || !Finite(station.Position) || station.Position <= previous || station.Position >= 1)
+                    return "Taper stations must be ordered at distinct positions between 0 and 1.";
+                if (!Finite(station.Scale) || station.Scale <= 0)
+                    return "Taper station scales must be positive finite numbers.";
+                previous = station.Position;
+            }
+            if (Kind == ProfileKind.Custom && (CustomOuterId == Guid.Empty || CustomOuterId == CustomInnerId))
+                return "Select one closed profile curve and optionally a different inner curve.";
             if (Kind == ProfileKind.Polygon && (Sides < 3 || Sides > 128)) return "Polygon sides must be between 3 and 128.";
             if (Kind == ProfileKind.CStud || Kind == ProfileKind.IBeam || Kind == ProfileKind.Angle)
             {
@@ -57,7 +97,7 @@ namespace PipeStudio
 
     public static class ProfileCatalog
     {
-        public static readonly string[] Names = { "Circle", "Triangle", "Square", "Rectangle", "Polygon", "C Stud", "Lumber", "I Beam", "Angle / L" };
+        public static readonly string[] Names = { "Circle", "Triangle", "Square", "Rectangle", "Polygon", "C Stud", "Lumber", "I Beam", "Angle / L", "Custom curve" };
         public static readonly string[] LumberSizes = { "1x2", "1x3", "1x4", "1x6", "1x8", "1x10", "1x12", "2x2", "2x3", "2x4", "2x6", "2x8", "2x10", "2x12", "4x4", "4x6", "6x6" };
 
         /// <summary>Common North American surfaced lumber actual sizes, in inches;
@@ -101,6 +141,7 @@ namespace PipeStudio
             switch (settings.Kind)
             {
                 case ProfileKind.Circle: return points;
+                case ProfileKind.Custom: throw new NotSupportedException("Custom profiles use Rhino document curves.");
                 case ProfileKind.Triangle:
                 case ProfileKind.Polygon:
                     int n = settings.Kind == ProfileKind.Triangle ? 3 : settings.Sides;

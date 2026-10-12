@@ -18,12 +18,13 @@ double Area(List<double[]> points)
     return sum / 2;
 }
 
-var settings = new ProfileSettings { Width = 3, Height = 6, Thickness = .25, Lip = 1 };
+var settings = new ProfileSettings { Width = 3, Height = 6, Thickness = .25, Lip = 1, CustomOuterId = Guid.NewGuid() };
 Check(ProfileCatalog.Names.Length == Enum.GetValues<ProfileKind>().Length, "UI catalog matches enum");
 foreach (ProfileKind kind in Enum.GetValues<ProfileKind>())
 {
     settings.Kind = kind;
     Check(settings.Validate() == null, kind + " accepts valid settings");
+    if (kind == ProfileKind.Custom) continue;
     var outline = ProfileCatalog.GetOutline(settings);
     if (kind == ProfileKind.Circle)
     {
@@ -122,4 +123,23 @@ var original = new ProfileSettings();
 var clone = original.Clone();
 clone.Width = 9;
 Check(original.Width == 2, "Settings clone is independent");
+original.IntermediateStations.Add(new TaperStation(.25, .5));
+original.IntermediateStations.Add(new TaperStation(.75, 1.5));
+Check(original.Validate() == null, "Ordered intermediate taper stations accepted");
+Check(original.AllStations().Count == 4, "Endpoints and intermediate stations combined");
+clone = original.Clone();
+clone.IntermediateStations[0].Scale = 4;
+Check(original.IntermediateStations[0].Scale == .5, "Clone owns its taper stations");
+original.IntermediateStations[1].Position = .25;
+Check(original.Validate() != null, "Duplicate taper positions rejected");
+original.IntermediateStations[1].Position = .75;
+original.IntermediateStations[0].Scale = 0;
+Check(original.Validate() != null, "Zero intermediate taper rejected");
+original.IntermediateStations[0].Scale = .5;
+original.Kind = ProfileKind.Custom;
+Check(original.Validate() != null, "Custom profile requires outer curve");
+original.CustomOuterId = Guid.NewGuid();
+Check(original.Validate() == null, "Custom profile accepts outer curve reference");
+original.CustomInnerId = original.CustomOuterId;
+Check(original.Validate() != null, "Custom inner curve must be distinct");
 Console.WriteLine($"Passed {assertions} profile assertions.");
