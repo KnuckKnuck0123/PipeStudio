@@ -11,6 +11,7 @@ Only the Rhino 8 macOS Apple Silicon geometry smoke and local Yak installation h
 - Review feedback found that the expanded dialog can exceed the screen height, hiding Create members. The settings now scroll and the action buttons remain visible. Rhino 8 has the local 0.10 alpha.3 package installed; restart Rhino to load it. Interactive layout, preview, creation, and undo still need a user-facing check.
 - A follow-up alpha raises the path-curve batch limit from 200 to 2,000. Preview is bounded to the first 200 curves for larger batches; Create builds the full selection and reports skipped rails. A large-batch host check remains pending.
 - Custom profile picking now accepts a source curve that is already selected. Picking one profile curve requires Enter to finish; picking two ends selection automatically.
+- User review of the locally installed Rhino 8 alpha reported the dialog and custom profile workflow working well enough to publish as a prerelease. Full host matrix, undo, and Rhino 7/Windows checks remain open.
 
 ## 0.9 verification (2026-10-12)
 

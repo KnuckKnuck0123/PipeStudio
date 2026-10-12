@@ -4,7 +4,7 @@
 
 Pipe Studio is a new RhinoCommon plugin for creating architectural members along path curves. It targets **Rhino 7 and Rhino 8 on macOS and Windows** with a shared Eto interface and AnyCPU assemblies.
 
-**Status: 0.10 alpha feature branch.** The published 0.9 release remains on [GitHub](https://github.com/KnuckKnuck0123/PipeStudio/releases/tag/v0.9.0) and Rhino Package Manager. This branch adds custom profiles and multiple taper stations for testing; it has not been published. Host checks in [docs/TESTING.md](docs/TESTING.md) are still being completed. Future ideas are in [docs/ROADMAP.md](docs/ROADMAP.md).
+**Status: 0.10 alpha prerelease.** The current prerelease is on [GitHub](https://github.com/KnuckKnuck0123/PipeStudio/releases/tag/v0.10.0-alpha.3) and Rhino Package Manager. It adds custom profiles and multiple taper stations. Host checks in [docs/TESTING.md](docs/TESTING.md) are still being completed. Future ideas are in [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Profiles and controls
 
@@ -31,7 +31,7 @@ In Rhino, run `RunPythonScript` and select `scripts/TestPipeStudio.py`. This loa
 2. Run `PipeStudio`.
 3. Click **Select path curves…** and select up to 2,000 curves. For batches over 200, the viewport previews the first 200; **Create** processes every selected curve.
 4. Choose a profile and dimensions. Review the preview, rotation, taper, and caps.
-   For **Custom curve**, click **Select profile curve(s)…** and pick the outer curve, then optionally an inner curve. For repeated grow/shrink taper, enter intermediate `position:scale` pairs in ascending order.
+   For **Custom curve**, click **Select profile curve(s)…** and pick the outer curve, then optionally an inner curve. Press Enter after picking only one curve. For repeated grow/shrink taper, enter intermediate `position:scale` pairs in ascending order.
 5. Click **Create members**. If a rail fails, the panel identifies skipped rails and offers creation of the valid members. Cancel clears the preview without adding objects.
 
 Sections are centered on rails. The initial orientation comes from Rhino's perpendicular frame, with an additional rotation around the rail. Curved and closed rails can twist or fail at tight bends; use the preview to inspect the result. Taper follows rail direction: reverse the curve to swap its start and end.
